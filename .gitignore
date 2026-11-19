@@ -1,0 +1,18 @@
+# Build output
+bin/
+obj/
+publish/
+
+# IDE and user files
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Runtime data, in case the app is ever pointed at the project folder
+*.csv
+enphase-token.txt
+settings.json
+log.txt
+agate-check-*.txt
+solar-baseline.json
