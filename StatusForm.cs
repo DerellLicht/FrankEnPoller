@@ -16,7 +16,6 @@ public sealed class StatusForm : Form
     private readonly Label _solar, _solarNote, _home, _homeNote, _grid, _gridNote, _battery, _batteryNote,
         _backup, _backupNote, _footer;
     private int _row;
-    private DateTime _hiddenAt;
     private bool _exiting;
 
     public StatusForm()
@@ -54,7 +53,14 @@ public sealed class StatusForm : Form
         Controls.Add(_table);
         ResumeLayout();
 
-        SizeChanged += (_, _) => { if (Visible) PlaceNearTray(); };
+        // The window now stays open and can be moved by the user, so a size change (the
+        // readings change the text, and AutoSize resizes us) must NOT snap it back to the
+        // tray corner. It only nudges the window back on-screen if it grew past the edge.
+        SizeChanged += (_, _) => {
+            if (Visible) {
+                KeepOnScreen();
+            }
+        };
     }
 
     private (Label Value, Label Note) AddItem(string name)
@@ -158,18 +164,26 @@ public sealed class StatusForm : Form
         _backupNote.Text = string.Join("\n", lines);
     }
 
-    public void Toggle()
+    /// <summary>
+    /// Tray-icon left-click. The window no longer auto-hides, so this no longer toggles:
+    /// if the window is closed it opens it, and if it is already open it just brings it
+    /// to the front. Closing is done only with the X on the title bar.
+    /// </summary>
+    public void ShowOrActivate()
     {
-        if (Visible)
-            Hide();
-        else if ((DateTime.UtcNow - _hiddenAt).TotalMilliseconds > 300) // the click that deactivated us
-            ShowNearTray();
+        ShowNearTray();
     }
 
+    /// <summary>
+    /// Shows the window if it is hidden, placing it near the tray only on that first show.
+    /// If it is already visible it is left where the user put it and just activated.
+    /// </summary>
     public void ShowNearTray()
     {
-        if (!Visible) Show();
-        PlaceNearTray();
+        if (!Visible) {
+            Show();
+            PlaceNearTray();
+        }
         Activate();
     }
 
@@ -179,11 +193,19 @@ public sealed class StatusForm : Form
         Location = new Point(area.Right - Width - 8, area.Bottom - Height - 8);
     }
 
-    protected override void OnDeactivate(EventArgs e)
+    /// <summary>
+    /// Moves the window the minimum distance needed to bring it fully inside the working
+    /// area of the screen it is on (e.g. after it grows past the bottom edge). A window
+    /// that is already fully on-screen is not touched.
+    /// </summary>
+    private void KeepOnScreen()
     {
-        base.OnDeactivate(e);
-        Hide();
-        _hiddenAt = DateTime.UtcNow;
+        var area = Screen.FromRectangle(Bounds).WorkingArea;
+        var x = Math.Max(area.Left, Math.Min(Left, area.Right - Width));
+        var y = Math.Max(area.Top, Math.Min(Top, area.Bottom - Height));
+        if (x != Left || y != Top) {
+            Location = new Point(x, y);
+        }
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)

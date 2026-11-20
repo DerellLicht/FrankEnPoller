@@ -8,7 +8,7 @@ namespace FrankEnPoller;
 /// <summary>
 /// The tray icon shows battery SoC while the battery is active, or grid kW while it's idle
 /// (or there's no aGate data), on a background coloured by grid flow: green exporting over 100 W, amber importing over 100 W, blue in between.
-/// Left-click toggles the status window; right-click opens the menu.
+/// Left-click opens the status window (it stays open until closed with its X); right-click opens the menu.
 /// </summary>
 public sealed class TrayApp : ApplicationContext
 {
@@ -56,7 +56,11 @@ public sealed class TrayApp : ApplicationContext
 
         _tray = new NotifyIcon { ContextMenuStrip = menu, Text = "FrankEnPoller: starting…", Visible = true };
         SetIcon("…", NoDataColor);
-        _tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) _status.Toggle(); };
+        _tray.MouseClick += (_, e) => {
+            if (e.Button == MouseButtons.Left) {
+                _status.ShowOrActivate();
+            }
+        };
 
         _poller.ReadingAvailable += OnReading;
         _poller.Start(_settings);
