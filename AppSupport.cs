@@ -18,6 +18,9 @@ public static class AppPaths
     public static string TokenCache => Path.Combine(Root, "enphase-token.txt");
     public static string LogFile => Path.Combine(Root, "log.txt");
 
+    /// <summary>Remembered position of the status window (kept apart from settings.json, which holds the encrypted passwords).</summary>
+    public static string WindowFile => Path.Combine(Root, "window.json");
+
     /// <summary>First run after the rename: move the old data folder (settings, logs, CSVs) across.</summary>
     public static void MigrateFromOldName()
     {

@@ -1,6 +1,14 @@
+using System.Text.Json;
+
 namespace FrankEnPoller;
 
-/// <summary>Small always-on-top window that pops up above the tray icon.</summary>
+/// <summary>On-disk form of the remembered status-window position (window.json).</summary>
+public sealed record WindowPosition(int X, int Y);
+
+/// <summary>
+/// Small always-on-top window that pops up above the tray icon on first use, and
+/// thereafter reopens wherever the user last moved it.
+/// </summary>
 public sealed class StatusForm : Form
 {
     private static readonly Color ExportColor = Color.FromArgb(0x1E, 0x8E, 0x3E);
@@ -17,6 +25,8 @@ public sealed class StatusForm : Form
         _backup, _backupNote, _footer;
     private int _row;
     private bool _exiting;
+    private Point? _savedLocation;      // where the user last left the window; null = never moved
+    private Point _locationAtMoveStart; // position when a move began, to tell a real move from a bare title-bar click
 
     public StatusForm()
     {
@@ -32,6 +42,7 @@ public sealed class StatusForm : Form
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
         BackColor = SystemColors.Window;
+        _savedLocation = LoadSavedLocation();
 
         (_solar, _solarNote) = AddItem("Solar");
         (_home, _homeNote) = AddItem("Home");
@@ -175,16 +186,75 @@ public sealed class StatusForm : Form
     }
 
     /// <summary>
-    /// Shows the window if it is hidden, placing it near the tray only on that first show.
-    /// If it is already visible it is left where the user put it and just activated.
+    /// Shows the window if it is hidden. It opens at the position the user last moved it to,
+    /// or near the tray if it has never been moved. If it is already visible it is left
+    /// where it is and just activated.
     /// </summary>
     public void ShowNearTray()
     {
         if (!Visible) {
-            Show();
-            PlaceNearTray();
+            if (_savedLocation is Point saved) {
+                // Set before Show() so it appears in place instead of flashing elsewhere first.
+                Location = saved;
+                Show();
+                // The remembered spot may be off-screen now (monitor unplugged, resolution
+                // change), and the size may differ from last time; pull it back into view.
+                KeepOnScreen();
+            } else {
+                Show();
+                PlaceNearTray();
+            }
         }
         Activate();
+    }
+
+    /// <summary>Remembers where a move started, so OnResizeEnd can tell if the window really moved.</summary>
+    protected override void OnResizeBegin(EventArgs e)
+    {
+        base.OnResizeBegin(e);
+        _locationAtMoveStart = Location;
+    }
+
+    /// <summary>
+    /// Fires when the user finishes dragging the window by its title bar (or moving it with
+    /// the keyboard). If the position actually changed, it is remembered for next time.
+    /// Programmatic placement (tray corner, KeepOnScreen) does not come through here, so
+    /// only a deliberate move is ever saved.
+    /// </summary>
+    protected override void OnResizeEnd(EventArgs e)
+    {
+        base.OnResizeEnd(e);
+        if (Location != _locationAtMoveStart) {
+            SaveLocation();
+        }
+    }
+
+    /// <summary>Reads window.json. Returns null if there is no saved position or it can't be read.</summary>
+    private static Point? LoadSavedLocation()
+    {
+        try {
+            if (File.Exists(AppPaths.WindowFile)) {
+                var pos = JsonSerializer.Deserialize<WindowPosition>(File.ReadAllText(AppPaths.WindowFile));
+                if (pos is not null) {
+                    return new Point(pos.X, pos.Y);
+                }
+            }
+        } catch (Exception ex) {
+            Log.Error("Could not read window.json; using the default position", ex);
+        }
+        return null;
+    }
+
+    /// <summary>Keeps the current position in memory and writes it to window.json. Failure to write is logged, never fatal.</summary>
+    private void SaveLocation()
+    {
+        _savedLocation = Location;
+        try {
+            Directory.CreateDirectory(AppPaths.Root);
+            File.WriteAllText(AppPaths.WindowFile, JsonSerializer.Serialize(new WindowPosition(Left, Top)));
+        } catch (Exception ex) {
+            Log.Error("Could not save the window position", ex);
+        }
     }
 
     private void PlaceNearTray()
