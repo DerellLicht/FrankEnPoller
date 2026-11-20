@@ -29,10 +29,23 @@ public sealed record CombinedReading(
     {
         if (Franklin?.HomeLoadW is double measured)
             return (measured, "measured by aGate");
-        if (Enphase is { } e && Franklin?.BatteryW is double battery)
-            return (e.ConsumptionW + battery, "Enphase load + battery");
-        if (Enphase is { } e2)
-            return (e2.ConsumptionW, "Enphase load (includes battery charging)");
+        if (Enphase?.ConsumptionW is double load && Franklin?.BatteryW is double battery)
+            return (load + battery, "Enphase load + battery");
+        if (Enphase?.ConsumptionW is double load2)
+            return (load2, "Enphase load (includes battery charging)");
+        return (null, "");
+    }
+
+    /// <summary>
+    /// Grid power, + import / - export. Prefers the Enphase consumption CTs; gateways
+    /// without them fall back to the aGate's grid reading.
+    /// </summary>
+    public (double? Watts, string Source) GetGrid()
+    {
+        if (Enphase?.GridW is double enphase)
+            return (enphase, "");
+        if (Franklin?.GridW is double agate)
+            return (agate, "measured by aGate");
         return (null, "");
     }
 }

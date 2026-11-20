@@ -71,7 +71,7 @@ public sealed class TrayApp : ApplicationContext
         _status.UpdateReading(r);
         _tray.Text = Tooltip(r);
 
-        var grid = r.Enphase?.GridW;
+        var grid = r.GetGrid().Watts;
         var color = grid switch
         {
             null => NoDataColor,
@@ -91,7 +91,7 @@ public sealed class TrayApp : ApplicationContext
     {
         var soc = r.Franklin?.SocPct;
         var batteryW = r.Franklin?.BatteryW;
-        var gridW = r.Enphase?.GridW;
+        var gridW = r.GetGrid().Watts;
 
         // The aGate can sit at ~99.9% for hours, trickle-charging a few dozen watts. A battery
         // that displays as 100% and isn't discharging counts as full, so treat it like idle.
@@ -116,20 +116,19 @@ public sealed class TrayApp : ApplicationContext
     {
         var lines = new List<string>();
         if (r.Enphase is { } e)
-        {
             lines.Add(Fmt.SolarToday(r) is { } solarToday
                 ? $"Solar {Fmt.Power(e.SolarW)}, {solarToday}"
                 : $"Solar {Fmt.Power(e.SolarW)}");
-            if (r.GetHomeLoad().Watts is double home)
-                lines.Add(r.Franklin?.HomeTodayKwh is double today
-                    ? $"Home {Fmt.Power(home)}, {today:0.0} kWh today"
-                    : $"Home {Fmt.Power(home)}");
-            lines.Add($"Grid {(e.GridW < 0 ? "exporting" : "importing")} {Fmt.Power(Math.Abs(e.GridW))}");
-        }
         else
-        {
             lines.Add("Enphase: no data");
-        }
+
+        if (r.GetHomeLoad().Watts is double home)
+            lines.Add(r.Franklin?.HomeTodayKwh is double today
+                ? $"Home {Fmt.Power(home)}, {today:0.0} kWh today"
+                : $"Home {Fmt.Power(home)}");
+
+        if (r.GetGrid().Watts is double grid)
+            lines.Add($"Grid {(grid < 0 ? "exporting" : "importing")} {Fmt.Power(Math.Abs(grid))}");
 
         if (r.Franklin is { } f)
             lines.Add($"Battery {f.SocPct?.ToString("0") ?? "?"}% {Fmt.BatteryState(f.BatteryW)}".TrimEnd());

@@ -95,7 +95,8 @@ public sealed class StatusForm : Form
         _home.Text = home is double h ? Fmt.Power(h) : "—";
         _homeNote.Text = f?.HomeTodayKwh is double today ? $"{homeSource} · {today:0.0} kWh today" : homeSource;
 
-        if (e is null)
+        var (grid, gridSource) = r.GetGrid();
+        if (grid is not double g)
         {
             _grid.Text = "—";
             _grid.ForeColor = SystemColors.ControlText;
@@ -103,9 +104,10 @@ public sealed class StatusForm : Form
         }
         else
         {
-            _grid.Text = Fmt.Power(Math.Abs(e.GridW));
-            _grid.ForeColor = e.GridW < 0 ? ExportColor : ImportColor;
-            _gridNote.Text = e.GridW < 0 ? "exporting" : "importing";
+            _grid.Text = Fmt.Power(Math.Abs(g));
+            _grid.ForeColor = g < 0 ? ExportColor : ImportColor;
+            var direction = g < 0 ? "exporting" : "importing";
+            _gridNote.Text = gridSource.Length > 0 ? $"{direction} · {gridSource}" : direction;
         }
 
         _battery.Text = f?.SocPct is double soc ? $"{soc:0}%" : "—";
@@ -113,7 +115,10 @@ public sealed class StatusForm : Form
 
         UpdateBackup(r.Backup);
 
-        var enphaseStatus =r.EnphaseError ?? $"updated {e!.Timestamp.LocalDateTime:T}";
+        // With inverter-only data, the timestamp is the inverters' last report, minutes apart.
+        var enphaseStatus = r.EnphaseError ?? (e!.SolarFromInverters
+            ? $"inverters reported {e.Timestamp.LocalDateTime:T} (no CT meters)"
+            : $"updated {e.Timestamp.LocalDateTime:T}");
         var franklinStatus = r.FranklinError ?? $"updated {r.FranklinUpdated?.LocalDateTime:T}";
         _footer.Text = $"Enphase: {enphaseStatus}\naGate: {franklinStatus}";
     }

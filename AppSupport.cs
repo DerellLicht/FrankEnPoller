@@ -45,7 +45,7 @@ public sealed class Settings
     private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("EnphasePoller");
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
 
-    public string EnphaseHost { get; set; } = "192.168.0.111";
+    public string EnphaseHost { get; set; } = "envoy.local"; // the gateway's own mDNS name; an IP address is more reliable
     public string EnphaseSerial { get; set; } = "";
     public string EnphaseEmail { get; set; } = "";
     public string? EnphasePasswordEncrypted { get; set; }

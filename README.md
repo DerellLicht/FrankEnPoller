@@ -18,7 +18,7 @@ A small Windows system-tray app that shows live power flow for a home with **Enp
 ## Requirements
 
 - Windows 10 or 11 with the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
-- An Enphase IQ Gateway with consumption CTs, reachable on your LAN, plus your Enlighten login and the gateway's serial number. The app uses these to get the gateway's access token.
+- An Enphase IQ Gateway reachable on your LAN, plus your Enlighten login and the gateway's serial number. The app uses these to get the gateway's access token. CT meters give real-time readings; without them, solar comes from the microinverters' reports (every few minutes) and grid power from the aGate.
 - A FranklinWH aGate and your FranklinWH app login. Optional: without it you get Enphase data only.
 
 ## Setup
@@ -43,7 +43,7 @@ This produces a single `publish\FrankEnPoller.exe`.
 
 ## How the numbers are worked out
 
-- **Enphase:** values come from the IQ Gateway's local `production.json` CT meters. The gateway's own "today" figures are unreliable on current firmware, so today's solar is the lifetime production counter minus its value before sunrise, taken from the CSV log. If the log doesn't reach back that far, the app uses the aGate's daily solar total.
+- **Enphase:** values come from the IQ Gateway's local `production.json` CT meters, or from its microinverter totals on gateways without a production CT. The gateway's own "today" figures are unreliable on current firmware, so today's solar is the lifetime production counter minus its value before sunrise, taken from the CSV log. If the log doesn't reach back that far, the app uses the aGate's daily solar total.
 - **FranklinWH aGate:** the cloud is polled every 30 seconds. Battery power is positive when discharging and negative when charging. The aGate can be read over local Modbus TCP instead, but FranklinWH doesn't enable Modbus for homeowners.
 - **Home load:** taken from the aGate. The aGate sits downstream of the Enphase consumption CTs, so Enphase's consumption figure includes battery charging and misses whatever the battery supplies.
 

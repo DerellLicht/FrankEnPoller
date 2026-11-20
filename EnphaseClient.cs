@@ -127,7 +127,7 @@ public sealed class EnphaseClient : IDisposable
             new { session_id = sessionId, serial_num = _serial, username = _email }, ct);
         var token = (await tokenResp.Content.ReadAsStringAsync(ct)).Trim();
         if (!tokenResp.IsSuccessStatusCode || token.Count(c => c == '.') != 2)
-            throw new InvalidOperationException($"Entrez token request failed ({(int)tokenResp.StatusCode}). Check ENPHASE_SERIAL.");
+            throw new InvalidOperationException($"Entrez token request failed ({(int)tokenResp.StatusCode}). Check the gateway serial number in Settings, and that the system is registered to this Enlighten account.");
 
         return token;
     }
