@@ -41,15 +41,16 @@ public sealed class DailySolar(string dataFolder)
     private sealed record CsvDay(DateTimeOffset FirstTime, double FirstLifetimeWh, double FirstSolarW,
         double PeakW, DateTimeOffset PeakTime);
 
-    public SolarDay Update(EnphaseReading e, DateTimeOffset now)
+    /// <param name="solarW">Best current solar power (see <see cref="CombinedReading.GetSolar()"/>), for the peak.</param>
+    public SolarDay Update(EnphaseReading e, double solarW, DateTimeOffset now)
     {
         var today = DateOnly.FromDateTime(now.LocalDateTime);
         if (_baseline is null || _day != today)
             StartDay(today, e, now);
 
-        if (e.SolarW > _peakW)
+        if (solarW > _peakW)
         {
-            _peakW = e.SolarW;
+            _peakW = solarW;
             _peakTime = now;
         }
 

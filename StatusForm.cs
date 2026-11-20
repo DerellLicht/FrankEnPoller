@@ -88,8 +88,10 @@ public sealed class StatusForm : Form
         var e = r.Enphase;
         var f = r.Franklin;
 
-        _solar.Text = e is null ? "—" : Fmt.Power(e.SolarW);
-        _solarNote.Text = string.Join("\n", new[] { Fmt.SolarToday(r), Fmt.SolarPeak(r) }.Where(s => s != null));
+        var (solar, solarSource) = r.GetSolar();
+        _solar.Text = solar is double sw ? Fmt.Power(sw) : "—";
+        _solarNote.Text = string.Join("\n",
+            new[] { solarSource.Length > 0 ? solarSource : null, Fmt.SolarToday(r), Fmt.SolarPeak(r) }.Where(s => s != null));
 
         var (home, homeSource) = r.GetHomeLoad();
         _home.Text = home is double h ? Fmt.Power(h) : "—";

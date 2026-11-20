@@ -14,7 +14,7 @@ public sealed record CombinedReading(
     DateTimeOffset? SolarTodaySince = null, // set when the total covers only part of today
     BackupEstimate? Backup = null)
 {
-    /// <summary>Today's highest Enphase solar reading.</summary>
+    /// <summary>Today's highest solar reading (from <see cref="GetSolar()"/>).</summary>
     public double? SolarPeakW { get; init; }
     public DateTimeOffset? SolarPeakTime { get; init; }
 
@@ -35,6 +35,27 @@ public sealed record CombinedReading(
             return (load2, "Enphase load (includes battery charging)");
         return (null, "");
     }
+
+    /// <summary>
+    /// Solar power now. Prefers the Enphase production CT (real time). Without one, the aGate's
+    /// reading (every 30 s) beats the microinverter reports (every few minutes), unless the
+    /// aGate reads ~0 while the inverters are producing: then the PV isn't wired through it.
+    /// </summary>
+    public (double? Watts, string Source) GetSolar() => GetSolar(Enphase, Franklin);
+
+    public static (double? Watts, string Source) GetSolar(EnphaseReading? enphase, FranklinReading? franklin)
+    {
+        if (enphase is { SolarFromInverters: false } ct)
+            return (ct.SolarW, "");
+        if (franklin?.SolarW is double agate &&
+            !(agate < AgateSolarIdleW && enphase?.SolarW > InverterSolarActiveW))
+            return (Math.Max(0, agate), "measured by aGate");
+        if (enphase is { } inverters)
+            return (inverters.SolarW, "inverter report, updates every few min");
+        return (null, "");
+    }
+
+    private const double AgateSolarIdleW = 10, InverterSolarActiveW = 100;
 
     /// <summary>
     /// Grid power, + import / - export. Prefers the Enphase consumption CTs; gateways
@@ -172,7 +193,8 @@ public sealed class Poller : IDisposable
             //  1. Enphase lifetime counter minus a pre-dawn baseline (exact, independent of the cloud)
             //  2. the aGate's kwh_sun, when the last aGate poll succeeded
             //  3. Enphase counter minus a mid-day baseline, shown as "since <time>"
-            var solarDay = e is null ? null : dailySolar.Update(e, now);
+            var solarW = CombinedReading.GetSolar(e, franklinResult.Reading).Watts;
+            var solarDay = e is null ? null : dailySolar.Update(e, solarW ?? e.SolarW, now);
             (double Kwh, DateTimeOffset? Since)? solarToday = solarDay is null ? null : (solarDay.Kwh, solarDay.Since);
             if (solarToday is not { Since: null } && franklinResult.Reading?.SolarTodayKwh is double agateSolarKwh)
                 solarToday = (agateSolarKwh, null);
@@ -239,7 +261,7 @@ public sealed class CsvLog(string folder)
         var f = r.Franklin;
         var line = string.Join(',',
             r.Timestamp.ToString("o", CultureInfo.InvariantCulture),
-            N(e?.SolarW), N(e?.ConsumptionW), N(e?.GridW), N(r.GetHomeLoad().Watts),
+            N(r.GetSolar().Watts), N(e?.ConsumptionW), N(e?.GridW), N(r.GetHomeLoad().Watts),
             N(f?.BatteryW), N(f?.SocPct), N(f?.GridW),
             r.FranklinUpdated?.ToString("o", CultureInfo.InvariantCulture) ?? "",
             N(e?.SolarLifetimeWh, "F0"), N(e?.ConsumptionLifetimeWh, "F0"), N(e?.GridNetLifetimeWh, "F0"),

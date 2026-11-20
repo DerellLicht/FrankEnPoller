@@ -64,7 +64,8 @@ public sealed class FranklinCloudClient : IFranklinSource
         GridW: Num(rt, "p_uti") * 1000,
         CapacityWh: null,
         HomeTodayKwh: Num(rt, "kwh_load"),   // today's totals, reset at midnight
-        SolarTodayKwh: Num(rt, "kwh_sun"));
+        SolarTodayKwh: Num(rt, "kwh_sun"),
+        SolarW: Num(rt, "p_sun") * 1000);
 
     private async Task<JsonElement> GetRuntimeDataAsync(CancellationToken ct)
     {

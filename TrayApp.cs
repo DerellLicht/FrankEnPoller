@@ -115,11 +115,11 @@ public sealed class TrayApp : ApplicationContext
     private static string Tooltip(CombinedReading r)
     {
         var lines = new List<string>();
-        if (r.Enphase is { } e)
+        if (r.GetSolar().Watts is double solar)
             lines.Add(Fmt.SolarToday(r) is { } solarToday
-                ? $"Solar {Fmt.Power(e.SolarW)}, {solarToday}"
-                : $"Solar {Fmt.Power(e.SolarW)}");
-        else
+                ? $"Solar {Fmt.Power(solar)}, {solarToday}"
+                : $"Solar {Fmt.Power(solar)}");
+        if (r.Enphase is null)
             lines.Add("Enphase: no data");
 
         if (r.GetHomeLoad().Watts is double home)

@@ -10,7 +10,8 @@ public sealed record FranklinReading(
     double? GridW,       // aGate's grid-side power. Modbus: SunSpec 701 W (meaning unverified). Cloud: p_uti
     double? CapacityWh,  // SunSpec 713 WHRtg
     double? HomeTodayKwh = null,   // home energy used today. Cloud: kwh_load (matches the FranklinWH app). Not on Modbus
-    double? SolarTodayKwh = null); // solar energy today. Cloud: kwh_sun (the aGate meters the Enphase PV). Not on Modbus
+    double? SolarTodayKwh = null,  // solar energy today. Cloud: kwh_sun (the aGate meters the Enphase PV). Not on Modbus
+    double? SolarW = null);        // solar power now. Cloud: p_sun. 0 if the PV isn't wired through the aGate. Not on Modbus
 
 /// <summary>
 /// Reads the FranklinWH aGate over Modbus TCP. The aGate exposes a SunSpec map starting

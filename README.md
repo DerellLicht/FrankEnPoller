@@ -18,7 +18,7 @@ A small Windows system-tray app that shows live power flow for a home with **Enp
 ## Requirements
 
 - Windows 10 or 11 with the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
-- An Enphase IQ Gateway reachable on your LAN, plus your Enlighten login and the gateway's serial number. The app uses these to get the gateway's access token. CT meters give real-time readings; without them, solar comes from the microinverters' reports (every few minutes) and grid power from the aGate.
+- An Enphase IQ Gateway reachable on your LAN, plus your Enlighten login and the gateway's serial number. The app uses these to get the gateway's access token. CT meters give real-time readings. Without them, solar and grid power come from the aGate (every 30 seconds), and solar falls back to the microinverters' reports (every few minutes) if the PV isn't wired through the aGate.
 - A FranklinWH aGate and your FranklinWH app login. Optional: without it you get Enphase data only.
 
 ## Setup
