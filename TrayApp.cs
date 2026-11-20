@@ -30,6 +30,7 @@ public sealed class TrayApp : ApplicationContext
     private readonly Poller _poller = new();
     private readonly NotifyIcon _tray;
     private readonly ToolStripMenuItem _startupItem;
+    private readonly ToolStripMenuItem _onTopItem;
     private Settings _settings;
     private IntPtr _iconHandle;
     private bool _settingsOpen;
@@ -43,8 +44,13 @@ public sealed class TrayApp : ApplicationContext
         {
             Checked = IsStartupEnabled()
         };
+        _onTopItem = new ToolStripMenuItem("Status window always on top", null, (_, _) => ToggleAlwaysOnTop())
+        {
+            Checked = _status.AlwaysOnTop
+        };
         var menu = new ContextMenuStrip();
         menu.Items.Add("Show status", null, (_, _) => _status.ShowNearTray());
+        menu.Items.Add(_onTopItem);
         menu.Items.Add("Settings…", null, async (_, _) => await OpenSettingsAsync());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Open data folder", null, (_, _) => OpenFolder(_settings.DataFolder));
@@ -244,6 +250,13 @@ public sealed class TrayApp : ApplicationContext
         else
             key.SetValue(RunValueName, $"\"{Environment.ProcessPath}\"");
         _startupItem.Checked = IsStartupEnabled();
+    }
+
+    /// <summary>Flips the status window's "always on top" flag and updates the menu check mark to match.</summary>
+    private void ToggleAlwaysOnTop()
+    {
+        _status.AlwaysOnTop = !_status.AlwaysOnTop;
+        _onTopItem.Checked = _status.AlwaysOnTop;
     }
 
     private static void OpenFolder(string path)

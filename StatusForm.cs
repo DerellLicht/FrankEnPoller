@@ -2,12 +2,22 @@ using System.Text.Json;
 
 namespace FrankEnPoller;
 
-/// <summary>On-disk form of the remembered status-window position (window.json).</summary>
-public sealed record WindowPosition(int X, int Y);
+/// <summary>
+/// On-disk form of the remembered status-window state (window.json). X and Y are null until
+/// the user has moved the window. Files written by the earlier position-only version
+/// (just X and Y) still load; AlwaysOnTop then defaults to false.
+/// </summary>
+public sealed class WindowState
+{
+    public int? X { get; set; }
+    public int? Y { get; set; }
+    public bool AlwaysOnTop { get; set; }
+}
 
 /// <summary>
-/// Small always-on-top window that pops up above the tray icon on first use, and
-/// thereafter reopens wherever the user last moved it.
+/// Small window that pops up above the tray icon on first use, and thereafter reopens
+/// wherever the user last moved it. Whether it floats above other windows is a user
+/// option (AlwaysOnTop, off by default) that is remembered between runs.
 /// </summary>
 public sealed class StatusForm : Form
 {
@@ -25,6 +35,7 @@ public sealed class StatusForm : Form
         _backup, _backupNote, _footer;
     private int _row;
     private bool _exiting;
+    private readonly WindowState _state; // contents of window.json: saved position and the always-on-top choice
     private Point? _savedLocation;      // where the user last left the window; null = never moved
     private Point _locationAtMoveStart; // position when a move began, to tell a real move from a bare title-bar click
 
@@ -37,12 +48,15 @@ public sealed class StatusForm : Form
         Font = new Font("Segoe UI", 9f);
         FormBorderStyle = FormBorderStyle.FixedToolWindow;
         ShowInTaskbar = false;
-        TopMost = true;
         StartPosition = FormStartPosition.Manual;
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
         BackColor = SystemColors.Window;
-        _savedLocation = LoadSavedLocation();
+        _state = LoadState();
+        TopMost = _state.AlwaysOnTop;
+        if (_state.X is int x && _state.Y is int y) {
+            _savedLocation = new Point(x, y);
+        }
 
         (_solar, _solarNote) = AddItem("Solar");
         (_home, _homeNote) = AddItem("Home");
@@ -225,35 +239,52 @@ public sealed class StatusForm : Form
     {
         base.OnResizeEnd(e);
         if (Location != _locationAtMoveStart) {
-            SaveLocation();
+            _savedLocation = Location;
+            _state.X = Left;
+            _state.Y = Top;
+            SaveState();
         }
     }
 
-    /// <summary>Reads window.json. Returns null if there is no saved position or it can't be read.</summary>
-    private static Point? LoadSavedLocation()
+    /// <summary>
+    /// Whether the window floats above other windows. Setting it takes effect immediately
+    /// and is remembered in window.json. When off, the window behaves like a normal window
+    /// and can go behind others; a tray-icon click (or "Show status") brings it forward.
+    /// </summary>
+    public bool AlwaysOnTop
+    {
+        get => TopMost;
+        set {
+            TopMost = value;
+            _state.AlwaysOnTop = value;
+            SaveState();
+        }
+    }
+
+    /// <summary>Reads window.json. Returns a default state (no position, not on top) if it is missing or unreadable.</summary>
+    private static WindowState LoadState()
     {
         try {
             if (File.Exists(AppPaths.WindowFile)) {
-                var pos = JsonSerializer.Deserialize<WindowPosition>(File.ReadAllText(AppPaths.WindowFile));
-                if (pos is not null) {
-                    return new Point(pos.X, pos.Y);
+                var state = JsonSerializer.Deserialize<WindowState>(File.ReadAllText(AppPaths.WindowFile));
+                if (state is not null) {
+                    return state;
                 }
             }
         } catch (Exception ex) {
-            Log.Error("Could not read window.json; using the default position", ex);
+            Log.Error("Could not read window.json; using defaults", ex);
         }
-        return null;
+        return new WindowState();
     }
 
-    /// <summary>Keeps the current position in memory and writes it to window.json. Failure to write is logged, never fatal.</summary>
-    private void SaveLocation()
+    /// <summary>Writes the current state to window.json. A failure to write is logged, never fatal.</summary>
+    private void SaveState()
     {
-        _savedLocation = Location;
         try {
             Directory.CreateDirectory(AppPaths.Root);
-            File.WriteAllText(AppPaths.WindowFile, JsonSerializer.Serialize(new WindowPosition(Left, Top)));
+            File.WriteAllText(AppPaths.WindowFile, JsonSerializer.Serialize(_state));
         } catch (Exception ex) {
-            Log.Error("Could not save the window position", ex);
+            Log.Error("Could not save window.json", ex);
         }
     }
 
