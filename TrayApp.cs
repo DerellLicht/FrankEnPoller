@@ -34,9 +34,12 @@ public sealed class TrayApp : ApplicationContext
     private Settings _settings;
     private IntPtr _iconHandle;
     private bool _settingsOpen;
+    private readonly SynchronizationContext? _uiContext;
 
     public TrayApp()
     {
+        // Captured after _status has been created (see the note above), for RequestExit().
+        _uiContext = SynchronizationContext.Current;
         _settings = Settings.Load();
         MigrateStartupEntry();
 
@@ -157,6 +160,7 @@ public sealed class TrayApp : ApplicationContext
     // To try a different font, put its exact family name at the top of this list.
     private static readonly (string Name, FontStyle Style)[] IconFontCandidates =
     {
+    	  ("Tahoma", FontStyle.Bold),
         ("Bahnschrift SemiBold Condensed", FontStyle.Regular),
         ("Arial Narrow", FontStyle.Bold),
         ("Segoe UI Semibold", FontStyle.Regular),
@@ -328,6 +332,21 @@ public sealed class TrayApp : ApplicationContext
     {
         if (File.Exists(path))
             Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+    }
+
+    /// <summary>
+    /// Asks the app to quit exactly as the tray menu's Exit does.  Safe to call from any
+    /// thread (Program calls it from a thread-pool thread when "--exit" is signalled).
+    /// </summary>
+    public void RequestExit()
+    {
+        _uiContext?.Post(async _ => {
+            try {
+                await ExitAsync();
+            } catch (Exception ex) {
+                Log.Error("Exit request failed", ex);
+            }
+        }, null);
     }
 
     private async Task ExitAsync()
