@@ -20,5 +20,7 @@
     <!-- Debug symbols inside the exe, so error logs keep line numbers without a separate .pdb. -->
     <DebugType>embedded</DebugType>
   </PropertyGroup>
-
+  <ItemGroup>
+    <Compile Remove="*.prev.cs" />
+  </ItemGroup>
 </Project>

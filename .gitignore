@@ -16,3 +16,5 @@ settings.json
 log.txt
 agate-check-*.txt
 solar-baseline.json
+TrayApp.prev.cs
+tools/

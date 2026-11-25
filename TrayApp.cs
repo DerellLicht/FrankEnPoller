@@ -149,19 +149,78 @@ public sealed class TrayApp : ApplicationContext
         return text.Length <= 127 ? text : text[..127]; // NotifyIcon.Text limit
     }
 
+    // ---- Tray-icon text font -------------------------------------------------------------
+    // The first family in this list that is installed gets used (name, style). Narrow faces
+    // are listed first because a 3-character reading ("100", "1.3") must fit a ~16 px wide
+    // icon at a legible size. The "SemiBold" Bahnschrift instance already carries its weight,
+    // so it is requested as Regular; the others are requested as Bold.
+    // To try a different font, put its exact family name at the top of this list.
+    private static readonly (string Name, FontStyle Style)[] IconFontCandidates =
+    {
+        ("Bahnschrift SemiBold Condensed", FontStyle.Regular),
+        ("Arial Narrow", FontStyle.Bold),
+        ("Segoe UI Semibold", FontStyle.Regular),
+        ("Segoe UI", FontStyle.Bold),
+    };
+
+    // false = hinted, non-smoothed text: crisp pixels, like the other tray icons.
+    // true  = ClearType-style/greyscale smoothing, which turns small digits into mush.
+    private const bool IconTextAntiAlias = false;
+
+    private static readonly (string Name, FontStyle Style) IconFont = PickIconFont();
+
+    /// <summary>
+    /// Returns the first entry of IconFontCandidates whose family is installed on this PC.
+    /// Without this check, GDI+ silently substitutes a default font for a missing family.
+    /// </summary>
+    private static (string Name, FontStyle Style) PickIconFont()
+    {
+        using var installed = new InstalledFontCollection();
+        foreach (var candidate in IconFontCandidates) {
+            if (installed.Families.Any(f => string.Equals(f.Name, candidate.Name, StringComparison.OrdinalIgnoreCase))) {
+                return candidate;
+            }
+        }
+        return ("Segoe UI", FontStyle.Bold);
+    }
+
+    /// <summary>
+    /// Creates the largest icon font (starting at ~90% of the icon height) whose rendered
+    /// text still fits within the icon width. The caller owns, and must dispose, the Font.
+    /// Shrinking in half-pixel steps stops at 6 px so the loop always terminates.
+    /// </summary>
+    private static Font FitIconFont(Graphics g, string text, Size size)
+    {
+        var px = size.Height * 0.9f;
+        while (true) {
+            var font = new Font(IconFont.Name, px, IconFont.Style, GraphicsUnit.Pixel);
+            var width = g.MeasureString(text, font, PointF.Empty, StringFormat.GenericTypographic).Width;
+            if (width <= size.Width - 1 || px <= 6f) {
+                return font;
+            }
+            font.Dispose();
+            px -= 0.5f;
+        }
+    }
+
     private void SetIcon(string text, Color background)
     {
         var size = SystemInformation.SmallIconSize;
         using var bitmap = new Bitmap(size.Width, size.Height);
         using (var g = Graphics.FromImage(bitmap))
         {
-            g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+            g.TextRenderingHint = IconTextAntiAlias
+                ? TextRenderingHint.AntiAliasGridFit
+                : TextRenderingHint.SingleBitPerPixelGridFit;
             using var brush = new SolidBrush(background);
             g.FillRectangle(brush, 0, 0, size.Width, size.Height);
-            var fontPx = size.Height * (text.Length >= 3 ? 0.52f : 0.7f);
-            using var font = new Font("Segoe UI", fontPx, FontStyle.Bold, GraphicsUnit.Pixel);
-            using var format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            g.DrawString(text, font, Brushes.White, new RectangleF(-3, 0, size.Width + 6, size.Height + 1), format);
+            using var font = FitIconFont(g, text, size);
+            // Same typographic format as the measuring step, so what fit is what gets drawn.
+            using var format = new StringFormat(StringFormat.GenericTypographic) {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center
+            };
+            g.DrawString(text, font, Brushes.White, new RectangleF(0, 0, size.Width, size.Height), format);
         }
 
         var handle = bitmap.GetHicon();
