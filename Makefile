@@ -1,12 +1,5 @@
 # Makefile for FrankEnPoller (replaces build.cmd)
 #
-#   make                  stop any running copy, then publish a Release build into .\publish
-#   make execute          launch the published program
-#   make all execute      both, in that order
-#   make usage            print this summary
-#   make stop             just terminate a running copy
-#   make clean            remove publish, bin and obj
-#
 # SHELL is deliberately left alone; Windows commands go through `cmd /c "..."`.
 # tools/stop_app.py is the CubicAdventurer helper, extended with an optional graceful-exit command.
 
@@ -18,7 +11,7 @@ PYTHON      ?= python
 # usage is listed first for readability, so name the default goal explicitly
 .DEFAULT_GOAL := all
 
-.PHONY: all usage execute stop clean
+.PHONY: all usage execute run stop clean
 
 usage:
 	@cmd /c "echo USAGE:"
@@ -26,16 +19,16 @@ usage:
 	@cmd /c echo.
 	@cmd /c "echo TARGETS"
 	@cmd /c "echo     all     - stop any running copy, then dotnet publish (Release); the default"
-	@cmd /c "echo     execute - run the published program"
+	@cmd /c "echo     run     - run the published program"
 	@cmd /c "echo     stop    - terminate a running copy"
 	@cmd /c "echo     clean   - remove publish, bin and obj folders"
 	@cmd /c echo.
-	@cmd /c "echo     Example: make all execute"
+	@cmd /c "echo     Example: make all run"
 
 all: stop
 	dotnet publish -c Release -o $(PUBLISH_DIR)
 
-execute:
+execute run:
 	@cmd /c start "" "$(EXE)"
 	
 wc:

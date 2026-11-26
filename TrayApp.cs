@@ -160,7 +160,10 @@ public sealed class TrayApp : ApplicationContext
     // To try a different font, put its exact family name at the top of this list.
     private static readonly (string Name, FontStyle Style)[] IconFontCandidates =
     {
+        //  both Tahoma and Lucida Console provide clear, readable text
+        //  in the tray icon, but Tahoma is slightly taller, so better
     	  ("Tahoma", FontStyle.Bold),
+    	  ("Lucida Console", FontStyle.Bold),
         ("Bahnschrift SemiBold Condensed", FontStyle.Regular),
         ("Arial Narrow", FontStyle.Bold),
         ("Segoe UI Semibold", FontStyle.Regular),
