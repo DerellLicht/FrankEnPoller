@@ -35,7 +35,7 @@ public sealed class SettingsForm : Form
         SuspendLayout();
         AutoScaleDimensions = new SizeF(96f, 96f);
         AutoScaleMode = AutoScaleMode.Dpi;
-        Text = "FrankEnPoller settings";
+        Text = $"FrankEnPoller V{AppInfo.Version} settings";
         Font = new Font("Segoe UI", 9f);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;

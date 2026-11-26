@@ -44,7 +44,7 @@ public sealed class StatusForm : Form
         SuspendLayout();
         AutoScaleDimensions = new SizeF(96f, 96f);
         AutoScaleMode = AutoScaleMode.Dpi;
-        Text = "FrankEnPoller";
+        Text = $"FrankEnPoller V{AppInfo.Version}";
         Font = new Font("Segoe UI", 9f);
         FormBorderStyle = FormBorderStyle.FixedToolWindow;
         ShowInTaskbar = false;

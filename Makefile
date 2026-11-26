@@ -37,6 +37,9 @@ all: stop
 
 execute:
 	@cmd /c start "" "$(EXE)"
+	
+wc:
+	wc -l *.cs *.csproj	
 
 # the exe cannot be replaced while it is running; this stops it only if it is running.
 # "--exit" asks the program to quit through its own Exit path first, so its tray icon is

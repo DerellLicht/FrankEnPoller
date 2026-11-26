@@ -5,6 +5,17 @@ using System.Text.Json.Serialization;
 
 namespace FrankEnPoller;
 
+/// <summary>
+/// The program version, taken from the Version field of FrankEnPoller.csproj (it is compiled
+/// into the assembly), so the title bars never need a separate edit when it changes.
+/// </summary>
+public static class AppInfo
+{
+    /// <summary>Version as "a.b.c", for example "2.0.1".</summary>
+    public static string Version { get; } =
+        System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?";
+}
+
 public static class AppPaths
 {
     private static readonly string LocalAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
