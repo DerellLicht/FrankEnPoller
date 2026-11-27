@@ -16,6 +16,9 @@ public sealed class TrayApp : ApplicationContext
     private const string RunValueName = "FrankEnPoller";
     private const string OldRunValueName = "EnphasePoller"; // before the rename
 
+    // This fork's repository; its GitHub page also links back to GasBandit's original.
+    private const string ProjectPageUrl = "https://github.com/DerellLicht/FrankEnPoller";
+
     // The system is rarely at exactly 0 W, so small trickles either way count as balanced.
     private const double GridDeadbandW = 100;
 
@@ -60,6 +63,8 @@ public sealed class TrayApp : ApplicationContext
         menu.Items.Add("Open log", null, (_, _) => OpenFile(AppPaths.LogFile));
         menu.Items.Add("aGate diagnostics…", null, async (_, _) => await DiagnoseAgateAsync());
         menu.Items.Add(_startupItem);
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("GitHub project page", null, (_, _) => OpenUrl(ProjectPageUrl));
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit", null, async (_, _) => await ExitAsync());
 
@@ -335,6 +340,21 @@ public sealed class TrayApp : ApplicationContext
     {
         if (File.Exists(path))
             Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+    }
+
+    /// <summary>
+    /// Opens a web address in the default browser (UseShellExecute hands the URL to Windows).
+    /// If Windows cannot launch it, the error is logged and shown, not thrown to the caller.
+    /// </summary>
+    private static void OpenUrl(string url)
+    {
+        try {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        } catch (Exception ex) {
+            Log.Error($"Could not open {url}", ex);
+            MessageBox.Show($"Could not open {url}\n\n{ex.Message}", "FrankEnPoller",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     /// <summary>

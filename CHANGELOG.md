@@ -1,5 +1,8 @@
 # FrankEnPoller Changelog (Derell Licht fork)
 
+## [2.0.2] - 2026-11-26
+- added a "GitHub project page" option to the tray menu, which opens this fork's repository in the default browser
+
 ## [2.0.1] - 2026-11-24
 - tweaking tray-icon font to improve readability
 - added makefile for managing the build/execute process
